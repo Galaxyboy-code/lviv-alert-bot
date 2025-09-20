@@ -3,12 +3,12 @@ import time
 import json
 from datetime import datetime, timedelta
 
-# VIBER Channels Post API — ТІЛЬКИ AUTH TOKEN (як ви маєте)
+# VIBER Channels Post API — ваш токен
 VIBER_AUTH_TOKEN = "4ff0433b38f5fcc9-a364357ba6cfecf4-beef8c736d55f9f9"
 VIBER_POST_URL = "https://chatapi.viber.com/pa/post"
 
-# API тривог
-ALERTS_API = "https://api.ukrainealarm.com/api/v2/regions"
+# НОВИЙ ПУБЛІЧНИЙ API ТРИВОГ (без ключа, siren.pp.ua)
+ALERTS_API = "https://siren.pp.ua/api/v1/regions"  # Публічний wrapper для Ukraine Alarm
 
 # Повідомлення (ТОЛЬКИ ЦІ ЙДУТЬ В КАНАЛ)
 ALERT_MSG = "🔴 Львівська область - повітряна тривога!"
@@ -41,12 +41,13 @@ class LvivAlertBot:
         self.last_donate_time = datetime.now() - timedelta(days=7)
         
         print("=" * 50)
-        print(f"🚀 VIBER BOT ДЛЯ ЛЬВОВА ЗАПУЩЕНО!")
+        print(f"🚀 VIBER BOT ДЛЯ ЛЬВОВА ЗАПУЩЕНО (НОВИЙ API siren.pp.ua)!")
         print(f"📅 Час: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}")
         print(f"🔑 Auth Token: {self.token[:20]}...")
+        print(f"📡 API тривог: {ALERTS_API}")
         print("=" * 50)
         
-        # ТЕСТ VIBER API З ДЕТАЛЬНИМ ЛОГУВАННЯМ
+        # ТЕСТ VIBER API
         self.test_viber_api()
     
     def test_viber_api(self):
@@ -55,9 +56,9 @@ class LvivAlertBot:
         
         test_payload = {
             'auth_token': self.token,
-            'from': self.token,  # Токен як from — працює для Channels Post API
+            'from': self.token,
             'type': 'text',
-            'text': '🧪 Railway: Бот запущено! Тест API.'
+            'text': '🧪 Railway: Бот оновлено! Новий API тривог.'
         }
         
         print(f"📤 Відправляємо запит: {json.dumps(test_payload, indent=2)}")
@@ -67,34 +68,18 @@ class LvivAlertBot:
             print(f"📥 Відповідь Viber:")
             print(f"   Status Code: {response.status_code}")
             print(f"   Response: {response.text[:200]}")
-            print(f"   Headers: {dict(response.headers)}")
             
             if response.status_code == 200:
-                print("✅ ✅ ✅ VIBER API ПРАЦЮЄ! Тест надіслано в канал!")
-                print("   Перевірте канал — має прийти '🧪 Railway: Бот запущено!'")
+                print("✅ ✅ ✅ VIBER API ПРАЦЮЄ! Тест надіслано в канал")
             else:
                 print(f"❌ ❌ ❌ VIBER API ПОМИЛКА {response.status_code}")
                 if response.status_code == 2:
                     print("   ПРИЧИНА: Невірний auth_token")
-                    print("   РІШЕННЯ: Перевірте Developer Tools → Auth Token")
                 elif response.status_code == 12:
-                    print("   ПРИЧИНА: Rate limit (занадто багато запитів)")
-                    print("   РІШЕННЯ: Зачекайте 1 годину")
-                elif response.status_code == 400:
-                    print("   ПРИЧИНА: Некоректний формат запиту")
-                    print("   РІШЕННЯ: Перевірте JSON payload")
-                else:
-                    print(f"   НЕЗНАНА ПОМИЛКА {response.status_code}")
-                    print("   РІШЕННЯ: Напишіть devsupport@viber.com")
-                    
-        except requests.exceptions.Timeout:
-            print("❌ ❌ ❌ TIMEOUT: Viber API не відповідає")
-            print("   РІШЕННЯ: Перевірте інтернет-з'єднання")
-        except requests.exceptions.ConnectionError:
-            print("❌ ❌ ❌ CONNECTION ERROR: Не можу підключитися до Viber")
-            print("   РІШЕННЯ: Перевірте URL https://chatapi.viber.com")
+                    print("   ПРИЧИНА: Rate limit")
+                
         except Exception as e:
-            print(f"❌ ❌ ❌ НЕОЧІКУВАНА ПОМИЛКА: {type(e).__name__}: {str(e)}")
+            print(f"❌ ❌ ❌ ПОМИЛКА ТЕСТУ: {type(e).__name__}: {str(e)}")
         
         print("\n" + "=" * 50)
     
@@ -104,7 +89,7 @@ class LvivAlertBot:
         
         payload = {
             'auth_token': self.token,
-            'from': self.token,  # Токен як from
+            'from': self.token,
             'type': 'text',
             'text': message
         }
@@ -115,7 +100,7 @@ class LvivAlertBot:
             print(f"📥 Response: {response.text[:100]}")
             
             if response.status_code == 200:
-                print("✅ ✅ ✅ ПОСТ НАДІСЛАНО УСПІШНО!")
+                print("✅ ✅ ✅ ПОСТ НАДІСЛАНО!")
                 return True
             else:
                 print(f"❌ ❌ ❌ ПОМИЛКА {response.status_code}")
@@ -126,8 +111,8 @@ class LvivAlertBot:
             return False
     
     def get_lviv_status(self):
-        """Статус Львова з логуванням"""
-        print("\n🔍 ОТРИМУЄМО СТАТУС ЛЬВОВА...")
+        """Статус Львова з НОВИМ API siren.pp.ua"""
+        print("\n🔍 ОТРИМУЄМО СТАТУС ЛЬВОВА (siren.pp.ua)...")
         
         try:
             print(f"📡 Запит до {ALERTS_API}")
@@ -135,31 +120,31 @@ class LvivAlertBot:
             print(f"📥 Status: {response.status_code}")
             
             if response.status_code == 200:
-                regions = response.json()
-                print(f"📊 Знайдено регіонів: {len(regions)}")
+                data = response.json()
+                print(f"📊 Структура відповіді: {json.dumps(data, indent=2)[:200]}...")  # Перші 200 символів
                 
-                # Шукаємо Львів
-                lviv_status = None
-                for i, region in enumerate(regions):
-                    region_name = region.get('region', '')
-                    print(f"   Регіон {i+1}: '{region_name}' — статус: {region.get('status')}")
+                # Формат siren.pp.ua: {"data": {"regions": [{"name": "Львівська", "status": "active/inactive"}]}}
+                if 'data' in data and 'regions' in data['data']:
+                    regions = data['data']['regions']
+                    print(f"📊 Знайдено регіонів: {len(regions)}")
                     
-                    if 'львів' in region_name.lower() or 'lviv' in region_name.lower():
-                        lviv_status = region.get('status')
-                        print(f"🎯 ЗНАЙДENO ЛЬВІВ: статус = '{lviv_status}'")
-                        break
+                    for i, region in enumerate(regions):
+                        region_name = region.get('name', '')
+                        status = region.get('status', 'unknown')
+                        print(f"   Регіон {i+1}: '{region_name}' — статус: {status}")
+                        
+                        if 'львів' in region_name.lower() or 'lviv' in region_name.lower():
+                            print(f"🎯 ЗНАЙДЕНО ЛЬВІВ: '{region_name}' — статус: {status}")
+                            return status
                 
-                if lviv_status:
-                    return lviv_status
-                else:
-                    print("⚠️ ⚠️ ЛЬВІВ НЕ ЗНАЙДЕНО В СПИСКІ РЕГІОНІВ")
-                    return None
+                print("⚠️ ⚠️ ЛЬВІВ НЕ ЗНАЙДЕНО В СПИСКІ РЕГІОНІВ")
+                return None
             else:
-                print(f"❌ ❌ API ТРИВОГ ПОМИЛКА {response.status_code}")
+                print(f"❌ ❌ НОВИЙ API ПОМИЛКА {response.status_code}")
                 return None
                 
         except Exception as e:
-            print(f"❌ ❌ ПОМИЛКА API ТРИВОГ: {type(e).__name__}: {str(e)}")
+            print(f"❌ ❌ ПОМИЛКА НОВОГО API: {type(e).__name__}: {str(e)}")
             return None
     
     def check_donate_post(self):
@@ -173,11 +158,11 @@ class LvivAlertBot:
                 self.last_donate_time = now
                 print("✅ ✅ ✅ ДОНАТ-ПОСТ НАДІСЛАНО!")
             else:
-                print("❌ ❌ ❌ ПОМИЛКА НАДСИЛАННЯ ДОНАТ-ПОСТУ")
+                print("❌ ❌ ❌ ПОМИЛКА ДОНАТ-ПОСТУ")
     
     def run_monitoring(self):
         """Головний цикл з детальним логуванням"""
-        print(f"\n🚀 🚀 🚀 ПОЧАТОК МОНІТОРИНГУ ЛЬВОВА!")
+        print(f"\n🚀 🚀 🚀 ПОЧАТОК МОНІТОРИНГУ ЛЬВОВА (НОВИЙ API)!")
         print(f"📅 Старт: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}")
         print("🔄 Перевірка кожні 30 секунд...\n")
         
@@ -276,4 +261,3 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n💥 💥 КРИТИЧНА ПОМИЛКА ПРИ ЗАПУСКУ: {type(e).__name__}: {str(e)}")
         print("🔧 Спробуйте перезапустити або перевірте налаштування")
-    bot.run_monitoring()
