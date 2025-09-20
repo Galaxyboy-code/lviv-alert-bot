@@ -48,7 +48,7 @@ class LvivAlertBot:
             'auth_token': self.token,
             'from': self.token,
             'type': 'text',
-            'text': '🧪 GitHub: Бот запущено на Render!'
+            'text': 'Канал продовжує свою роботу.'
         }
         try:
             response = requests.post(self.post_url, json=test_payload, timeout=10)
